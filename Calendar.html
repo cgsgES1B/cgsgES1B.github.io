@@ -1,0 +1,59 @@
+<html>
+    <head>
+        <title>index</title>
+        <meta charset="utf-8">
+        <script>
+            let Month, Year;
+            let monthDays = [];
+
+            function inputMonth() {
+                data = document.getElementById('inputMonth').value;
+                Month = parseInt(data) - 1;
+
+                var input = document.getElementById("inputMonth");
+
+                if (isNaN(Month) || Month < 0 || Month > 11) {
+                     Month = 0;
+
+                    input.style.background = "red";
+                }
+                else
+                    input.style.background = "white";
+            }
+
+            function inputYear() {
+                data = document.getElementById('inputYear').value;
+                Year = parseInt(data);
+
+                var input = document.getElementById("inputYear");
+
+                if (isNaN(Year)) {
+                     Year = (new Date()).getFullYear();
+
+                    input.style.background = "red";
+                }
+                else
+                    input.style.background = "white";
+            }
+
+            
+
+            function getMonth(e) {
+                if (e == 0) {
+                    Year = (new Date()).getFullYear();
+                    
+                }
+
+             Month = (new Date()).getMonth();
+            }
+        </script>
+    </head>
+    <body onload="getMonth(0);">
+
+        <label for="inputMonth">Month</label> <input type="text" id="inputMonth"
+            onkeyup="inputMonth();" style="background: white;"><br>
+        
+        <label for="inputYear">Year</label> <input type="text" id="inputYear"
+            onkeyup="inputYear();" style="background: white;"><br>
+    </body>
+</html>
