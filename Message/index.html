@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF_8" />
+    <title>Sample hosted HTML</title>
+    <script>
+        let NumOfUsers = 0;
+        let user, lastdata = "";
+
+        function SendMsg(nick, msg) {
+            let user = {
+                nickname: nick,
+                message: msg
+            };
+
+            fetch('/addData', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify(user)
+            });
+        }
+
+        async function tick(){
+            var messages = document.getElementById('messages');
+            
+            fetch('/getData', {method: 'GET'})
+            .then (response => {return response.text()})  
+            .then (response_text => {
+                if (response_text !== lastdata)
+                {
+                    var item = document.createElement('li');
+                    data = JSON.parse(response_text);
+
+                    item.textContent = data.nickname + ': ' +  data.message;
+                    //item.textContent = data;
+                    messages.appendChild(item);
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+                lastdata = response_text;
+            });
+            /* .then(console.log("OK")); */
+            /*
+            .then(res => res.map(user => user.username))
+            .then(userNames => console.log(userNames));
+            */
+            setTimeout(tick, 500);
+        }
+    </script>
+    <style>
+        body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  
+        #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+        input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+        input:focus { outline: none; }
+        #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+  
+        #messages { list-style-type: none; margin: 0; padding: 0; }
+        #messages > li { padding: 0.5rem 1rem; }
+        #messages > li:nth-child(odd) { background: #efefef; }
+      </style>
+  
+</head>
+
+<body onload='setTimeout(tick, 500);'>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="nick" autocomplete="off" /><input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+
+    <script>
+        var form = document.getElementById('form');
+        var nick = document.getElementById('nick');
+        var input = document.getElementById('input');
+      
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          if (input.value && nick.value) {
+            SendMsg(nick.value, input.value);
+            input.value = '';
+            nick.value = '';
+          }
+        });
+      </script>
+</body>
+
+</html>
