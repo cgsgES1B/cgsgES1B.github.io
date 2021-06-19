@@ -1,0 +1,240 @@
+<html>
+
+<head>
+  <title>Mandelbrot</title>
+
+  <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+  <script type="text/javascript">
+    var gl;
+    var itteration;
+    var mouse_pos_x, mouse_pos_y, mouse_wheel, wheel_pos_x, wheel_pos_y;
+
+    let vertexShader, fragmentShader;
+
+    
+    function initGL(canvas) {
+      try {
+        gl = canvas.getContext("webgl2");
+        gl.viewportWidth = canvas.width;
+        gl.viewportHeight = canvas.height;
+      } catch (e) {
+      }
+      if (!gl) {
+        alert("Could not initialise WebGL");
+      }
+    }
+
+    function getShader(gl, str, type) {
+      var shader;
+      if (type == "shader_fs") {
+        shader = gl.createShader(gl.FRAGMENT_SHADER);
+      } else if (type == "shader_vs") {
+        shader = gl.createShader(gl.VERTEX_SHADER);
+      } else {
+        return null;
+      }
+
+      gl.shaderSource(shader, str);
+      gl.compileShader(shader);
+
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert(gl.getShaderInfoLog(shader));
+        return null;
+      }
+
+      return shader;
+    }
+
+    let shader_vs_url = fetch("vs_shader.txt")
+      .then (vs_shader => {return vs_shader.text()})  
+      .then (vs_shader_text =>
+      {
+        /* Init vertex shader */
+        vertexShader = getShader(gl, vs_shader_text, "shader_vs");
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+      });
+
+    let shader_fs_url = fetch("fs_shader.txt")
+      .then (fs_shader => {
+        console.log(fs_shader);
+        return fs_shader.text();
+        })
+      .then
+      (fs_shader_text =>{
+        /* Init shader */
+        fragmentShader = getShader(gl, fs_shader_text, "shader_fs");
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+          alert("Could not initialise shaders");
+        }
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+        shaderProgram.itteration_uniform = gl.getUniformLocation(shaderProgram, "itteration");
+        
+        shaderProgram.mouse_pos_x_uniform = gl.getUniformLocation(shaderProgram, "mouse_pos_x");
+        shaderProgram.mouse_pos_y_uniform = gl.getUniformLocation(shaderProgram, "mouse_pos_y");
+        shaderProgram.mouse_wheel_uniform = gl.getUniformLocation(shaderProgram, "mouse_wheel");
+        shaderProgram.wheel_pos_x_uniform = gl.getUniformLocation(shaderProgram, "wheel_pos_x");
+        shaderProgram.wheel_pos_y_uniform = gl.getUniformLocation(shaderProgram, "wheel_pos_y");
+        
+        initBuffers();
+        
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+
+        /* Draw scene */
+        drawScene();
+        tick();
+      }); 
+
+    var shaderProgram;
+
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+
+    function setMatrixUniforms() {
+      gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+      gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+      gl.uniform1f(shaderProgram.itteration_uniform, itteration);
+      
+      gl.uniform1f(shaderProgram.mouse_pos_x_uniform, mouse_pos_x);
+      gl.uniform1f(shaderProgram.mouse_pos_y_uniform, mouse_pos_y);
+      gl.uniform1f(shaderProgram.mouse_wheel_uniform, mouse_wheel);
+      gl.uniform1f(shaderProgram.wheel_pos_x_uniform, wheel_pos_x);
+      gl.uniform1f(shaderProgram.wheel_pos_y_uniform, wheel_pos_y);
+      
+    }
+    var squareVertexPositionBuffer;
+
+    function initBuffers() {
+      squareVertexPositionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+      vertices = [
+        1.0, 1.0, 0.0,
+        -1.0, 1.0, 0.0,
+        1.0, -1.0, 0.0,
+        -1.0, -1.0, 0.0
+      ];
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+      squareVertexPositionBuffer.itemSize = 3;
+      squareVertexPositionBuffer.numItems = 4;
+    }
+
+    function drawScene() {
+      gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+      mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+
+      mat4.identity(mvMatrix);
+
+      mat4.translate(mvMatrix, [-1.5, 0.0, -7.0]);
+
+      mat4.translate(mvMatrix, [3.0, 0.0, 0.0]);
+      gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+      gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+      setMatrixUniforms();
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+    }
+
+    function tick() {
+      window.requestAnimationFrame(tick);
+      drawScene();
+    }
+
+
+    function webGLStart() {
+      itteration = 255.0;
+      mouse_pos_x = mouse_pos_y = 250.0, wheel_pos_x = wheel_pos_y = 0.0;
+      mouse_wheel = 1;
+      document.getElementById('input_itteration').value = itteration;
+
+      var canvas = document.getElementById("wegl-canvas");
+      initGL(canvas);
+    }
+
+    function update_itteration() {
+      data = document.getElementById('input_itteration').value;
+      itteration = parseInt(data);
+
+      var input = document.getElementById("input_itteration");
+
+      if (isNaN(itteration)) {
+        itteration = 30;
+
+        input.style.background = "red";
+      }
+      else
+        input.style.background = "white";
+    }
+  </script>
+
+  <script>
+    
+    let flag = 0, prev_x = 0, prex_y = 0, w_prev_x = 0, w_prev_y = 0;
+    let delta_wheel = 1;
+      
+    function mouseDown() {
+      prev_x = event.clientX;
+      prev_y = event.clientY;
+      flag = 1;
+    }
+
+    function mouseUp() {
+      flag = 0;
+    }
+
+    function myFunction(e) {
+      if (flag) 
+      {
+        mouse_pos_x += e.clientX - prev_x;
+        mouse_pos_y += e.clientY - prev_y;
+
+        prev_x = e.clientX;
+        prev_y = e.clientY;
+      }
+    }
+
+    function MouseWheel(e) {
+      delta_wheel = e.deltaY;
+
+      mouse_wheel += delta_wheel / 1000;
+
+      wheel_pos_x = e.clientX / 500.0 * 6.0 - 3.0;
+      wheel_pos_y = e.clientY / 500.0 * 6.0 - 3.0;
+    }
+  </script>
+
+</head>
+
+
+<body onload="webGLStart();">
+
+  <canvas id="wegl-canvas" style="border: none;" onmousewheel=MouseWheel(event) width="500" height="500"></canvas>
+
+  <script>
+    
+    document.getElementById("wegl-canvas").addEventListener("mousedown", mouseDown);
+    document.getElementById("wegl-canvas").addEventListener("mouseup", mouseUp);
+    document.getElementById("wegl-canvas").addEventListener("mousemove", function (event) {
+      myFunction(event);
+    });
+    
+  </script>
+
+  <br />
+
+  <label for="input_itteration">Number of itterations</label> <input type="text" id="input_itteration"
+    onkeyup="update_itteration()" style="background: white;"><br>
+  
+</body>
+
+</html>

@@ -1,0 +1,31 @@
+#version 300 es
+
+precision mediump float;
+
+uniform float itteration;
+uniform float mouse_pos_x, mouse_pos_y, mouse_wheel, wheel_pos_x, wheel_pos_y;
+
+out vec4 FragColor;
+
+void main(void)
+{
+  float pos_x = gl_FragCoord.x / 500.0 * 6.0 - 3.0, pos_y = gl_FragCoord.y / 500.0 * 6.0 - 3.0,
+        mx = mouse_pos_x / 500.0 * 6.0 - 3.0, my = mouse_pos_y / 500.0 * 6.0 - 3.0; 
+  vec2 con = vec2(pos_x - mx, pos_y + my) / mouse_wheel;
+
+  //con.x += wheel_pos_x * mouse_wheel, con.y -= wheel_pos_y * mouse_wheel;
+
+  vec2 z = con;
+  float n = 0.0;
+  
+  while (n < itteration && z.x * z.x + z.y * z.y < 4.0)
+  {
+    //z = vec2(z.x * z.x - z.y * z.y + con.x - mouse_pos_x, 2.0 * z.x * z.y + con.y + mouse_pos_y);
+    z = vec2(z.x * z.x - z.y * z.y + con.x, 2.0 * z.x * z.y + con.y);
+    n += 1.0;
+  }
+  //n /= 255.0;
+  n /= itteration;
+
+  FragColor = vec4(n / 2.0, n / 3.0, n * 10.0, 1.0);
+}
