@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Globe Map</title>
+    <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
+    <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
+  <script defer src="index_bundle.js"></script></head>
+
+  <body>
+    <div id="cesiumContainer"></div>
+    <form id="form" action="" onsubmit="return false" style="display:none">
+      <input id="input" autocomplete="off" />
+      <button type="submit">Add new address</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+  </body>
+</html>
